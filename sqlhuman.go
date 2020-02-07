@@ -32,6 +32,8 @@ func (sqlhuman *SQLHuman) Add(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&human)
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
+		return
 	}
 
 	human.ID = uuid.New().String()
@@ -40,6 +42,7 @@ func (sqlhuman *SQLHuman) Add(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotImplemented)
+		return
 	}
 
 	rows, err := res.RowsAffected()
@@ -145,6 +148,8 @@ func (sqlhuman *SQLHuman) UpdateOne(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&h)
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
+		return
 	}
 
 	h.ID = params["ID"]
@@ -154,6 +159,7 @@ func (sqlhuman *SQLHuman) UpdateOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotImplemented)
+		return
 	}
 
 	rows, err := res.RowsAffected()
@@ -175,6 +181,7 @@ func (sqlhuman *SQLHuman) DeleteOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotImplemented)
+		return
 	}
 
 	rows, err := res.RowsAffected()
