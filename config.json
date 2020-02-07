@@ -1,0 +1,8 @@
+{ 
+"DbAdmin":"root",
+"DbPWD":"root",
+"DbPath":"mysql",
+"DbService":"MySQL",//PostgreSQL
+"Port":8080,
+"LinesPerPage":20
+}
