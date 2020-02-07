@@ -48,7 +48,7 @@ func (sqlhuman *SQLHuman) Add(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotImplemented)
 	}
 	if rows != 1 {
-		log.Printf("expected to affect 1 row, affected %d", rows)
+		log.Printf("expected to insert 1 row, insert %d", rows)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -111,17 +111,16 @@ func (sqlhuman *SQLHuman) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (sqlhuman *SQLHuman) GetOne(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Content-Type", "application/json")
 	var h Human
 
 	params := mux.Vars(r)
 
 	rows, err := sqlhuman.db.Query("SELECT ID,Firstname,Lastname,Age FROM User WHERE ID=?", params["ID"])
-
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
-
 	for rows.Next() {
 		err = rows.Scan(&h.ID, &h.Firstname, &h.Lastname, &h.Age)
 		if err != nil {
@@ -130,14 +129,15 @@ func (sqlhuman *SQLHuman) GetOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = json.NewEncoder(w).Encode(h)
-
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
+		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (sqlhuman *SQLHuman) UpdateOne(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
 
 	var h Human
@@ -149,32 +149,42 @@ func (sqlhuman *SQLHuman) UpdateOne(w http.ResponseWriter, r *http.Request) {
 
 	h.ID = params["ID"]
 
-	prepared, err := sqlhuman.db.Prepare("UPDATE User SET Firstname=?,Lastname=?,Age=? WHERE ID=?")
+	res, err := sqlhuman.db.Exec("UPDATE User SET Firstname=?,Lastname=?,Age=? WHERE ID=?", h.Firstname, h.Lastname, h.Age, h.ID)
+
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
 	}
 
-	_, err = prepared.Exec(h.Firstname, h.Lastname, h.Age, h.ID)
+	rows, err := res.RowsAffected()
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
 	}
-
-	w.WriteHeader(http.StatusOK)
+	if rows != 1 {
+		log.Printf("expected to update 1 row, update %d", rows)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func (sqlhuman *SQLHuman) DeleteOne(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
 
-	prepared, err := sqlhuman.db.Prepare("UPDATE User SET Salted=1 WHERE ID=?")
+	res, err := sqlhuman.db.Exec("UPDATE User SET Salted=1 WHERE ID=?", params["ID"])
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
 	}
 
-	_, err = prepared.Exec(params["ID"])
+	rows, err := res.RowsAffected()
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
 	}
-
-	w.WriteHeader(http.StatusOK)
+	if rows != 1 {
+		log.Printf("expected to delete 1 row, delete %d", rows)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 }
