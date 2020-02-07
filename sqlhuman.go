@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -17,7 +18,7 @@ type SQLHuman struct {
 func newSQLHuman() *SQLHuman {
 	database, err := sql.Open("mysql", "root:root@/mydb")
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 
 	return &SQLHuman{
@@ -26,71 +27,87 @@ func newSQLHuman() *SQLHuman {
 }
 
 func (sqlhuman *SQLHuman) Add(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Content-Type", "application/json")
 	var human Human
 
 	err := json.NewDecoder(r.Body).Decode(&human)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	human.ID = uuid.New().String()
-	prepared, err := sqlhuman.db.Prepare("INSERT INTO User(ID,Firstname,Lastname,Age) VALUES(?,?,?,?)")
+	res, err := sqlhuman.db.Exec("INSERT INTO User(ID,Firstname,Lastname,Age) VALUES(?,?,?,?)", human.ID, human.Firstname, human.Lastname, human.Age)
 
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
 	}
 
-	_, err = prepared.Exec(human.ID, human.Firstname, human.Lastname, human.Age)
-	//	if err = sql, sql != nil {
-	//		log.Println(err.Error())
-	//	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusNotImplemented)
+	}
+	if rows != 1 {
+		log.Printf("expected to affect 1 row, affected %d", rows)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 
-	w.WriteHeader(http.StatusOK)
 }
 
-func (sqlhuman *SQLHuman) PrepareQuery(tName string) (rPP int, rC int) {
+func (sqlhuman *SQLHuman) BeforeQueryGet(tName string) (rPP int, rC int) {
 
-	var rowCount int
+	rowCount := 0
 	err := sqlhuman.db.QueryRow("SELECT COUNT(*) FROM ?", tName).Scan(&rowCount)
-	switch {
-	case err == sql.ErrNoRows:
+
+	if err == sql.ErrNoRows {
 		log.Printf("no data in table %q\n", tName)
-	case err != nil:
+	} else if err != nil {
 		log.Printf("query error: %v\n", err)
 	}
-
+	return FileConfig.LinesPerPage, rowCount
 }
 
 func (sqlhuman *SQLHuman) GetAll(w http.ResponseWriter, r *http.Request) {
 	var humanity []Human
-
-	rows, err := sqlhuman.db.Query("SELECT ID,Firstname,Lastname,Age FROM User")
+	params := mux.Vars(r)
+	page, err := strconv.Atoi(params["PAGE"])
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
+		page = 1
 	}
 
-	for rows.Next() {
-		var h Human
-		err = rows.Scan(&h.ID, &h.Firstname, &h.Lastname, &h.Age)
+	linePerPage, rowCount := sqlhuman.BeforeQueryGet("User")
 
+	if rowCount > 0 {
+		rows, err := sqlhuman.db.Query("SELECT ID,Firstname,Lastname,Age FROM User LIMIT ? OFSET ?", linePerPage, page*linePerPage)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 		}
 
-		humanity = append(humanity, h)
-	}
-	json.
-		err = json.NewEncoder(w).Encode(humanity)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	w.Headers.Add
+		for rows.Next() {
+			var h Human
+			err = rows.Scan(&h.ID, &h.Firstname, &h.Lastname, &h.Age)
 
-	//	response.Headers.Add("X-Paging-PageNo", pageNo.ToString());
-	//    response.Headers.Add("X-Paging-PageSize", pageSize.ToString());
-	//    response.Headers.Add("X-Paging-PageCount", pageCount.ToString());
-	//    response.Headers.Add("X-Paging-TotalRecordCount", total.ToString());
+			if err != nil {
+				log.Println(err)
+			}
+
+			humanity = append(humanity, h)
+		}
+
+		err = json.NewEncoder(w).Encode(humanity)
+		if err != nil {
+			log.Println(err)
+		}
+		w.Header().Add("X-Paging-PageNo", string(page))
+		w.Header().Add("X-Paging-PageSize", string(linePerPage))
+		w.Header().Add("X-Paging-PageCount", string(rowCount/linePerPage))
+		w.Header().Add("X-Paging-TotalRecordCount", string(rowCount))
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (sqlhuman *SQLHuman) GetOne(w http.ResponseWriter, r *http.Request) {
@@ -102,20 +119,20 @@ func (sqlhuman *SQLHuman) GetOne(w http.ResponseWriter, r *http.Request) {
 	rows, err := sqlhuman.db.Query("SELECT ID,Firstname,Lastname,Age FROM User WHERE ID=?", params["ID"])
 
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	for rows.Next() {
 		err = rows.Scan(&h.ID, &h.Firstname, &h.Lastname, &h.Age)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 		}
 	}
 
 	err = json.NewEncoder(w).Encode(h)
 
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 }
 
@@ -127,19 +144,19 @@ func (sqlhuman *SQLHuman) UpdateOne(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&h)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	h.ID = params["ID"]
 
 	prepared, err := sqlhuman.db.Prepare("UPDATE User SET Firstname=?,Lastname=?,Age=? WHERE ID=?")
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	_, err = prepared.Exec(h.Firstname, h.Lastname, h.Age, h.ID)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -151,12 +168,12 @@ func (sqlhuman *SQLHuman) DeleteOne(w http.ResponseWriter, r *http.Request) {
 
 	prepared, err := sqlhuman.db.Prepare("UPDATE User SET Salted=1 WHERE ID=?")
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	_, err = prepared.Exec(params["ID"])
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 
 	w.WriteHeader(http.StatusOK)
