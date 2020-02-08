@@ -32,7 +32,7 @@ func (sqlhuman *SQLHuman) Add(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&human)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusNotImplemented)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -86,7 +86,9 @@ func (sqlhuman *SQLHuman) GetAll(w http.ResponseWriter, r *http.Request) {
 		rows, err := sqlhuman.db.Query("SELECT ID,Firstname,Lastname,Age FROM User LIMIT ? OFSET ?", linePerPage, page*linePerPage)
 		if err != nil {
 			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
+		defer rows.Close()
 
 		for rows.Next() {
 			var h Human
@@ -94,15 +96,22 @@ func (sqlhuman *SQLHuman) GetAll(w http.ResponseWriter, r *http.Request) {
 
 			if err != nil {
 				log.Println(err)
+				continue
 			}
 
 			humanity = append(humanity, h)
+		}
+
+		err = rows.Err()
+		if err != nil {
+			log.Println(err)
 		}
 
 		err = json.NewEncoder(w).Encode(humanity)
 		if err != nil {
 			log.Println(err)
 		}
+
 		w.Header().Add("X-Paging-PageNo", string(page))
 		w.Header().Add("X-Paging-PageSize", string(linePerPage))
 		w.Header().Add("X-Paging-PageCount", string(rowCount/linePerPage))
@@ -118,17 +127,11 @@ func (sqlhuman *SQLHuman) GetOne(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 
-	rows, err := sqlhuman.db.Query("SELECT ID,Firstname,Lastname,Age FROM User WHERE ID=?", params["ID"])
+	err := sqlhuman.db.QueryRow("SELECT ID,Firstname,Lastname,Age FROM User WHERE ID=?", params["ID"]).Scan(&h.ID, &h.Firstname, &h.Lastname, &h.Age)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-	for rows.Next() {
-		err = rows.Scan(&h.ID, &h.Firstname, &h.Lastname, &h.Age)
-		if err != nil {
-			log.Println(err)
-		}
 	}
 
 	err = json.NewEncoder(w).Encode(h)
@@ -148,7 +151,7 @@ func (sqlhuman *SQLHuman) UpdateOne(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&h)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusNotImplemented)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
