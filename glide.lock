@@ -1,0 +1,13 @@
+hash: a5cec6604bb043aeb2aaf7b09647e38ce586c3cced22ba84bc453a94e85cec44
+updated: 2020-02-09T14:47:31.031699924+02:00
+imports:
+- name: github.com/google/uuid
+  version: 0cd6bf5da1e1c83f8b45653022c74f71af0538a4
+- name: github.com/gorilla/mux
+  version: 00bdffe0f3c77e27d2cf6f5c70232a2d3e4d9c15
+- name: github.com/lib/pq
+  version: 9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be
+  subpackages:
+  - oid
+  - scram
+testImports: []
