@@ -2,16 +2,25 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
+	var fconf ConfigData
 	addr := flag.String("a", ":8000", "address of app")
 	flag.Parse()
-	sh := newSQLHuman()
+	conff := os.Args[1]
+
+	res := fconf.InitConfig(conff)
+	if res {
+		*addr = fmt.Sprintf(":%d", fconf.Port)
+	}
+	sh := newSQLHuman(&fconf)
 
 	mainRoute := mux.NewRouter()
 	apiRoute := mainRoute.PathPrefix("/api/v1").Subrouter()

@@ -9,20 +9,25 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 )
 
 type SQLHuman struct {
-	db *sql.DB
+	db   *sql.DB
+	conf *ConfigData
 }
 
-func newSQLHuman() *SQLHuman {
-	database, err := sql.Open("mysql", "root:root@/mydb")
+func newSQLHuman(cf *ConfigData) *SQLHuman {
+
+	dbdriver, connStr := cf.ConnectString()
+	database, err := sql.Open(dbdriver, connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return &SQLHuman{
-		db: database,
+		db:   database,
+		conf: cf,
 	}
 }
 
@@ -61,14 +66,14 @@ func (sqlhuman *SQLHuman) Add(w http.ResponseWriter, r *http.Request) {
 func (sqlhuman *SQLHuman) BeforeQueryGet(tName string) (rPP int, rC int) {
 
 	rowCount := 0
-	err := sqlhuman.db.QueryRow("SELECT COUNT(*) FROM ?", tName).Scan(&rowCount)
+	err := sqlhuman.db.QueryRow("SELECT COUNT(*) FROM User").Scan(&rowCount)
 
 	if err == sql.ErrNoRows {
 		log.Printf("no data in table %q\n", tName)
 	} else if err != nil {
 		log.Printf("query error: %v\n", err)
 	}
-	return FileConfig.LinesPerPage, rowCount
+	return sqlhuman.conf.LinesPerPage, rowCount
 }
 
 func (sqlhuman *SQLHuman) GetAll(w http.ResponseWriter, r *http.Request) {

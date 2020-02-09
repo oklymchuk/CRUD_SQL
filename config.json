@@ -1,8 +1,10 @@
-{ 
-"DbAdmin":"root",
-"DbPWD":"root",
-"DbPath":"mysql",
-"DbService":"MySQL",//PostgreSQL
-"Port":8080,
-"LinesPerPage":20
+{
+    "DbAdmin": "postgres",
+    "DbPWD": "root",
+    "DbPath": "mydb",
+    "DbService": "Postgres",
+    "DbHost": "localhost",
+    "DbPort": 5432,
+    "Port": 8080,
+    "LinesPerPage": 20
 }
