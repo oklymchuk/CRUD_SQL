@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,13 +11,13 @@ import (
 
 func main() {
 	var fconf ConfigData
-	addr := flag.String("a", ":8000", "address of app")
-	flag.Parse()
+	var port string
+
 	conff := os.Args[1]
 
 	res := fconf.InitConfig(conff)
 	if res {
-		*addr = fmt.Sprintf(":%d", fconf.Port)
+		port = fmt.Sprintf(":%d", fconf.Port)
 	}
 	sh := newSQLHuman(&fconf)
 
@@ -29,8 +28,9 @@ func main() {
 	apiRoute.HandleFunc("/list/{ID}", sh.GetOne).Methods(http.MethodGet)
 	apiRoute.HandleFunc("/list/{ID}", sh.UpdateOne).Methods(http.MethodPut)
 	apiRoute.HandleFunc("/list/{ID}", sh.DeleteOne).Methods(http.MethodDelete)
+	_ = port
 
-	if err := http.ListenAndServe(*addr, mainRoute); err != nil {
+	if err := http.ListenAndServe(port, mainRoute); err != nil {
 		log.Fatal(err.Error())
 	}
 }

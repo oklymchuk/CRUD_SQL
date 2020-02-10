@@ -19,10 +19,6 @@ type ConfigData struct {
 	LinesPerPage int    `json:"LinesPerPage"`
 }
 
-//var FileConfig ConfigData
-//		{"first", args{"/home/ostap/CRUD_SQL/config.json"}, true, &ConfigData{"root", "root", "mysql", "MySQL", 8080, 20}}, // TODO: Add test cases.
-//		{"sec", args{"config.json"}, true, &ConfigData{"root", "root", "mysql", "MySQL", 8080, 20}},
-
 func (conf *ConfigData) InitConfig(pathToConfigFile string) bool {
 
 	jsFile, err := os.Open(pathToConfigFile)
