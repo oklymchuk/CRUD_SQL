@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -13,9 +12,7 @@ func main() {
 	var fconf ConfigData
 	var port string
 
-	conff := os.Args[1]
-
-	res := fconf.InitConfig(conff)
+	res := fconf.InitConfig("config.json")
 	if res {
 		port = fmt.Sprintf(":%d", fconf.Port)
 	}
